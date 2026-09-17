@@ -202,100 +202,143 @@ EOF
 
 # --- 3. Anti-DDoS Module (anti_ddos.py) ---
 cat << 'EOF' > anti_ddos.py
-import time
-import subprocess
+import asyncio
 import collections
+import ipaddress
+import time
 import os
-import sys
 
-# Configuration Parameters
-MAX_CONN_PER_IP = 150       # Maximum concurrent sockets per remote IP
-RATE_LIMIT_WINDOW = 5       # Window in seconds
-MAX_REQ_PER_WINDOW = 200    # Threshold connections within window
-BAN_TIME = 600              # Ban duration in seconds (10 mins)
+MAX_CONN_PER_IP = 150       
+RATE_LIMIT_WINDOW = 5       
+MAX_REQ_PER_WINDOW = 200    
+BAN_TIME = 600              
+IPSET_NAME = "antiddos_blacklist"
 
-banned_ips = {}
-ip_history = collections.defaultdict(list)
+banned_ips = {}  
+ip_history = collections.defaultdict(lambda: collections.deque(maxlen=MAX_REQ_PER_WINDOW + 10))
 
-def log(msg):
+def log(msg: str) -> None:
     print(f"[Anti-DDoS] {time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}", flush=True)
 
-def apply_ip_ban(ip):
-    log(f"ALERT: Malicious traffic detected from {ip}. Applying Ban...")
-    banned_ips[ip] = time.time() + BAN_TIME
-    # Attempt iptables rule insertion (if privileged)
+def parse_hex_ip(hex_str: str) -> str:
     try:
-        subprocess.run(["iptables", "-A", "INPUT", "-s", ip, "-j", "DROP"], check=True, stderr=subprocess.DEVNULL)
-    except Exception:
+        if len(hex_str) == 8:  
+            ip_int = int(hex_str, 16)
+            return str(ipaddress.IPv4Address(ip_int.to_bytes(4, byteorder='little')))
+        elif len(hex_str) == 32:  
+            raw_bytes = bytearray()
+            for i in range(0, 32, 8):
+                word = int(hex_str[i:i+8], 16)
+                raw_bytes.extend(word.to_bytes(4, byteorder='little'))
+            return str(ipaddress.IPv6Address(bytes(raw_bytes)))
+    except ValueError:
         pass
+    return ""
 
-def unban_expired():
-    now = time.time()
-    to_remove = []
-    for ip, expire_time in banned_ips.items():
-        if now >= expire_time:
-            to_remove.append(ip)
-            try:
-                subprocess.run(["iptables", "-D", "INPUT", "-s", ip, "-j", "DROP"], check=True, stderr=subprocess.DEVNULL)
-            except Exception:
-                pass
-    for ip in to_remove:
-        del banned_ips[ip]
-        log(f"UNBAN: Released IP {ip}")
-
-def inspect_connections():
-    now = time.time()
-    try:
-        # Scan socket activity via ss
-        proc = subprocess.Popen(["ss", "-ntu"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, _ = proc.communicate()
-    except Exception as e:
-        return
-
-    active_counts = collections.defaultdict(int)
+def read_proc_sockets():
+    remote_ips = []
     
-    for line in stdout.splitlines():
-        if "ESTAB" not in line and "SYN-SENT" not in line:
+    for path in ("/proc/net/tcp", "/proc/net/tcp6"):
+        if not os.path.exists(path):
             continue
-        parts = line.split()
-        if len(parts) < 5:
-            continue
-        
-        # Extract remote IP address
-        r_addr = parts[4]
-        if ":" in r_addr:
-            ip = r_addr.rsplit(":", 1)[0].replace("[", "").replace("]", "")
-            if ip in ("127.0.0.1", "::1", ""):
-                continue
             
-            active_counts[ip] += 1
-            ip_history[ip].append(now)
+        with open(path, "r") as f:
+            next(f)  
+            for line in f:
+                parts = line.split()
+                if len(parts) < 4:
+                    continue
+                
+                state = parts[3]
+                if state not in ("01", "02"):
+                    continue
+                
+                rem_addr = parts[2]
+                hex_ip = rem_addr.split(":")[0]
+                
+                ip = parse_hex_ip(hex_ip)
+                if ip and ip not in ("127.0.0.1", "::1", "0.0.0.0"):
+                    remote_ips.append(ip)
+                    
+    return remote_ips
 
-            # Enforce max concurrency limit
-            if active_counts[ip] > MAX_CONN_PER_IP and ip not in banned_ips:
-                log(f"EXCEEDED CONCURRENCY: {ip} with {active_counts[ip]} connections.")
-                apply_ip_ban(ip)
+async def exec_cmd(*args) -> bool:
+    proc = await asyncio.create_subprocess_exec(
+        *args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
+    )
+    await proc.wait()
+    return proc.returncode == 0
 
-    # Enforce burst rate limits
-    for ip, timestamps in list(ip_history.items()):
-        # Prune timestamps older than window
-        ip_history[ip] = [t for t in timestamps if now - t <= RATE_LIMIT_WINDOW]
-        if len(ip_history[ip]) > MAX_REQ_PER_WINDOW and ip not in banned_ips:
-            log(f"RATE LIMIT EXCEEDED: {ip} ({len(ip_history[ip])} reqs/{RATE_LIMIT_WINDOW}s)")
-            apply_ip_ban(ip)
+async def setup_firewall():
+    log("Initializing kernel ipset rules...")
+    await exec_cmd("ipset", "create", IPSET_NAME, "hash:ip", "timeout", str(BAN_TIME), "-exist")
+    await exec_cmd("iptables", "-I", "INPUT", "-m", "set", "--match-set", IPSET_NAME, "src", "-j", "DROP")
 
-def main():
-    log("Engine started. Monitoring sockets...")
+async def ban_ip(ip: str):
+    if ip in banned_ips:
+        return
+        
+    banned_ips[ip] = time.time() + BAN_TIME
+    log(f"ALERT: Ban applied to {ip} (Kernel ipset)")
+    await exec_cmd("ipset", "add", IPSET_NAME, ip, "timeout", str(BAN_TIME), "-exist")
+
+async def prune_expired_bans():
+    now = time.time()
+    expired = [ip for ip, exp_time in banned_ips.items() if now >= exp_time]
+    for ip in expired:
+        del banned_ips[ip]
+        if ip in ip_history:
+            del ip_history[ip]
+
+async def inspect_connections():
+    now = time.time()
+    
+    remote_ips = await asyncio.to_thread(read_proc_sockets)
+    
+    active_counts = collections.defaultdict(int)
+    ban_tasks = []
+
+    for ip in remote_ips:
+        if ip in banned_ips:
+            continue
+
+        active_counts[ip] += 1
+        history = ip_history[ip]
+        history.append(now)
+
+        if active_counts[ip] > MAX_CONN_PER_IP:
+            log(f"EXCEEDED CONCURRENCY: {ip} ({active_counts[ip]} active sockets)")
+            ban_tasks.append(asyncio.create_task(ban_ip(ip)))
+            continue
+
+        while history and now - history[0] > RATE_LIMIT_WINDOW:
+            history.popleft()
+
+        if len(history) > MAX_REQ_PER_WINDOW:
+            log(f"RATE LIMIT EXCEEDED: {ip} ({len(history)} reqs/{RATE_LIMIT_WINDOW}s)")
+            ban_tasks.append(asyncio.create_task(ban_ip(ip)))
+
+    if ban_tasks:
+        await asyncio.gather(*ban_tasks)
+
+async def main():
+    await setup_firewall()
+    log("Engine started. Direct kernel-space socket inspection active...")
+
     while True:
         try:
-            unban_expired()
-            inspect_connections()
+            await inspect_connections()
+            await prune_expired_bans()
         except Exception as e:
-            pass
-        time.sleep(2)
+            log(f"Error during inspection loop: {e}")
+            
+        await asyncio.sleep(2)
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        log("Shutting down engine...")
 EOF
 
 # --- 4. Log Cleaner Module (log_cleaner.py) ---
