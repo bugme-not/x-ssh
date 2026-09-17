@@ -635,7 +635,7 @@ http {
 
     map $http_sec_websocket_key $ws_key {
         default $http_sec_websocket_key;
-        ""      "S2w0eVY4bTBRN3pQNjFqWA==";
+        ""      "Y7bV4mQ9X1pK3zT8wL5nR2==";
     }
 
     map $http_sec_websocket_version $ws_version {
