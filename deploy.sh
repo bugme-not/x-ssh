@@ -343,10 +343,11 @@ EOF
 
 # --- 4. Log Cleaner Module (log_cleaner.py) ---
 cat << 'EOF' > log_cleaner.py
+import asyncio
 import os
 import time
 import glob
-import shutil
+from pathlib import Path
 
 LOG_PATHS = [
     "/var/log/nginx/*.log",
@@ -357,56 +358,107 @@ LOG_PATHS = [
     "/tmp/*.log"
 ]
 
-CLEAN_INTERVAL = 120  # Runs every 2 minutes
-MAX_FILE_SIZE_MB = 10 # Truncate if exceeds 10MB
+DIRS_TO_PURGE = ["/tmp", "/var/tmp", "/var/cache/nginx"]
 
-def log(msg):
+CLEAN_INTERVAL = 120
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+TEMP_MAX_AGE_SEC = 300
+
+def log(msg: str) -> None:
     print(f"[Log-Cleaner] {time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}", flush=True)
 
-def truncate_file(filepath):
-    try:
-        with open(filepath, 'w') as f:
-            f.truncate(0)
-        log(f"Truncated oversized log: {filepath}")
-    except Exception:
-        pass
+async def truncate_file_async(filepath: str) -> None:
+    def _truncate():
+        try:
+            with open(filepath, 'r+', os.O_NONBLOCK) as f:
+                f.truncate(0)
+            log(f"Truncated oversized log: {filepath}")
+        except Exception:
+            pass
+    await asyncio.to_thread(_truncate)
 
-def wipe_temp_cache():
-    dirs_to_purge = ["/tmp", "/var/tmp", "/var/cache/nginx"]
-    for path in dirs_to_purge:
-        if os.path.exists(path):
-            for item in os.listdir(path):
-                target = os.path.join(path, item)
+def scan_and_filter_logs(pattern: str) -> list[str]:
+    targets = []
+    for filepath in glob.glob(pattern):
+        try:
+            if os.path.isfile(filepath):
+                if os.path.getsize(filepath) > MAX_FILE_SIZE_BYTES:
+                    targets.append(filepath)
+        except Exception:
+            pass
+    return targets
+
+async def purge_logs():
+    loop = asyncio.get_running_loop()
+    scan_tasks = [loop.run_in_executor(None, scan_and_filter_logs, pattern) for pattern in LOG_PATHS]
+    results = await asyncio.gather(*scan_tasks)
+    
+    truncation_tasks = []
+    for oversized_files in results:
+        for filepath in oversized_files:
+            truncation_tasks.append(truncate_file_async(filepath))
+            
+    if truncation_tasks:
+        await asyncio.gather(*truncation_tasks)
+
+def _scan_directory_fast(path_str: str) -> list[str]:
+    now = time.time()
+    files_to_remove = []
+    
+    if not os.path.exists(path_str):
+        return files_to_remove
+        
+    try:
+        with os.scandir(path_str) as entries:
+            for entry in entries:
                 try:
-                    if os.path.isfile(target) and not target.endswith('.py'):
-                        if time.time() - os.path.getmtime(target) > 300: # Older than 5 min
-                            os.remove(target)
+                    if entry.is_file(follow_symlinks=False) and not entry.name.endswith('.py'):
+                        stat = entry.stat(follow_symlinks=False)
+                        if now - stat.st_mtime > TEMP_MAX_AGE_SEC:
+                            files_to_remove.append(entry.path)
                 except Exception:
                     pass
+    except Exception:
+        pass
+        
+    return files_to_remove
 
-def purge_logs():
-    for pattern in LOG_PATHS:
-        for filepath in glob.glob(pattern):
-            try:
-                if os.path.isfile(filepath):
-                    size_mb = os.path.getsize(filepath) / (1024 * 1024)
-                    if size_mb > MAX_FILE_SIZE_MB:
-                        truncate_file(filepath)
-            except Exception:
-                pass
+async def unlink_file_async(filepath: str) -> None:
+    def _unlink():
+        try:
+            os.unlink(filepath)
+        except Exception:
+            pass
+    await asyncio.to_thread(_unlink)
 
-def main():
-    log("Engine active. Automatic log sanitization enabled...")
+async def wipe_temp_cache():
+    loop = asyncio.get_running_loop()
+    scan_tasks = [loop.run_in_executor(None, _scan_directory_fast, d) for d in DIRS_TO_PURGE]
+    results = await asyncio.gather(*scan_tasks)
+    
+    removal_tasks = []
+    for file_list in results:
+        for filepath in file_list:
+            removal_tasks.append(unlink_file_async(filepath))
+            
+    if removal_tasks:
+        await asyncio.gather(*removal_tasks)
+
+async def main():
+    log("Engine active. Async log sanitization enabled...")
     while True:
         try:
-            purge_logs()
-            wipe_temp_cache()
+            await asyncio.gather(purge_logs(), wipe_temp_cache())
         except Exception as e:
-            pass
-        time.sleep(CLEAN_INTERVAL)
+            log(f"Cycle execution error: {e}")
+            
+        await asyncio.sleep(CLEAN_INTERVAL)
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        log("Shutting down engine...")
 EOF
 
 # --- 5. entrypoint.sh ---
