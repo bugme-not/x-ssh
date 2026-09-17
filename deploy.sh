@@ -11,11 +11,11 @@ YELLOW='\033[1;33m'
 BORDER_COLOR='[1;35m'
 
 echo ""
-echo -e "${BORDER_COLOR}# ====================================================${RESET}"
+echo -e "${BORDER_COLOR}# ==================================================${RESET}"
 echo -e "${BORDER_COLOR}#${RESET}"
 echo -e "${BORDER_COLOR}#${RESET} ${BOLD}${CYAN}WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6${RESET}"
 echo -e "${BORDER_COLOR}#${RESET}"
-echo -e "${BORDER_COLOR}# ====================================================${RESET}"
+echo -e "${BORDER_COLOR}# ==================================================${RESET}"
 echo ""
 
 
