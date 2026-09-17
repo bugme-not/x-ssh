@@ -32,7 +32,7 @@ echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}                 SERVICE NAME${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [cxlvin]: ${RESET}")" INPUT_NAME
-SERVICE_NAME=${INPUT_NAME:-cxlvin}
+SERVICE_NAME=${INPUT_NAME:-example:cxlvin}
 echo ""
 
 echo -e "  ${MAGENTA}==================================================${NC}"
