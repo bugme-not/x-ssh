@@ -11,11 +11,11 @@ YELLOW='\033[1;33m'
 BORDER_COLOR='[1;35m'
 
 echo ""
-echo -e "${BORDER_COLOR}# ==================================================${RESET}"
+echo -e "${BORDER_COLOR}# ====================================================${RESET}"
 echo -e "${BORDER_COLOR}#${RESET}"
 echo -e "${BORDER_COLOR}#${RESET} ${BOLD}${CYAN}WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6${RESET}"
 echo -e "${BORDER_COLOR}#${RESET}"
-echo -e "${BORDER_COLOR}# ==================================================${RESET}"
+echo -e "${BORDER_COLOR}# ====================================================${RESET}"
 echo ""
 
 
@@ -31,8 +31,8 @@ gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}                 SERVICE NAME${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
-read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [cxlvin]: ${RESET}")" INPUT_NAME
-SERVICE_NAME=${INPUT_NAME:-example:cxlvin}
+read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [example:cxlvin]: ${RESET}")" INPUT_NAME
+SERVICE_NAME=${INPUT_NAME:-cxlvin}
 echo ""
 
 echo -e "  ${MAGENTA}==================================================${NC}"
