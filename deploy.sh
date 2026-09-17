@@ -168,7 +168,7 @@ EOF
 cat << 'EOF' > xray_config.json
 {
   "log": {
-    "loglevel": "warning"
+    "loglevel": "none"
   },
   "inbounds": [
     {
@@ -187,14 +187,31 @@ cat << 'EOF' > xray_config.json
       "streamSettings": {
         "network": "ws",
         "wsSettings": {
-          "path": "/CxlvinVlWS"
+          "path": "/CxlvinVlWS",
+          "maxEarlyData": 2048,
+          "earlyDataHeaderName": "Sec-WebSocket-Protocol"
+        },
+        "sockopt": {
+          "tcpFastOpen": true,
+          "tcpNoDelay": true,
+          "mark": 255
         }
       }
     }
   ],
   "outbounds": [
     {
-      "protocol": "freedom"
+      "protocol": "freedom",
+      "tag": "direct",
+      "settings": {
+        "domainStrategy": "UseIP"
+      },
+      "streamSettings": {
+        "sockopt": {
+          "tcpFastOpen": true,
+          "tcpNoDelay": true
+        }
+      }
     }
   ]
 }
