@@ -1,9 +1,4 @@
 #!/bin/bash
-# ==============================================================================
-# 
-# WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6 (ADVANCED SECURITY EDITION)
-# 
-# ==============================================================================
 BOLD='\033[1m'; RESET='\033[0m'; NC='\033[0m'
 
 CYAN='\033[1;36m'
@@ -12,9 +7,17 @@ MAGENTA='\033[1;35m'
 PINK='\033[38;5;201m'
 YELLOW='\033[1;33m'
 
+
+BORDER_COLOR='[1;35m'
+
 echo ""
-echo -e "  ${BOLD}${CYAN}WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6${RESET}"
+echo -e "${BORDER_COLOR}# ==============================================================================${RESET}"
+echo -e "${BORDER_COLOR}#${RESET}"
+echo -e "${BORDER_COLOR}#${RESET} ${BOLD}${CYAN}WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6${RESET}"
+echo -e "${BORDER_COLOR}#${RESET}"
+echo -e "${BORDER_COLOR}# ==============================================================================${RESET}"
 echo ""
+
 
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null | tr -d '[:space:]')
 if [ -z "$PROJECT_ID" ]; then
@@ -84,21 +87,69 @@ echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}            BUILD MODE SELECTION${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${CYAN}1) 🚀 HIGH PERFORMANCE${RESET}"
-echo -e "  ${GREEN}   vCPU: 4 | RAM: 4Gi | Min: 1 | Max: 4${RESET}"
+echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
+echo -e "  ${GREEN}   vCPU                : 4CPU${RESET}"
+echo -e "  ${GREEN}   Memory              : 4Gi${RESET}"
+echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
+echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
+echo -e "  ${GREEN}   Auto Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 4${RESET}"
+echo -e "  ${GREEN}   Revision Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 4${RESET}"
+echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
+echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
 echo -e "  ${CYAN}2) 🌱 ESSENTIAL${RESET}"
-echo -e "  ${GREEN}   vCPU: 1 | RAM: 512Mi | Min: 1 | Max: 2${RESET}"
+echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
+echo -e "  ${GREEN}   vCPU                : 1CPU${RESET}"
+echo -e "  ${GREEN}   Memory              : 512Mi${RESET}"
+echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
+echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
+echo -e "  ${GREEN}   Auto Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
+echo -e "  ${GREEN}   Revision Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
+echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
+echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
 echo -e "  ${CYAN}3) ⚖️ STANDARD${RESET}"
-echo -e "  ${GREEN}   vCPU: 1 | RAM: 1Gi | Min: 1 | Max: 2${RESET}"
+echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
+echo -e "  ${GREEN}   vCPU                : 1CPU${RESET}"
+echo -e "  ${GREEN}   Memory              : 1Gi${RESET}"
+echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
+echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
+echo -e "  ${GREEN}   Auto Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
+echo -e "  ${GREEN}   Revision Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
+echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
+echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
 echo -e "  ${CYAN}4) ⚡ BALANCED${RESET}"
-echo -e "  ${GREEN}   vCPU: 2 | RAM: 2Gi | Min: 1 | Max: 2${RESET}"
+echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
+echo -e "  ${GREEN}   vCPU                : 2CPU${RESET}"
+echo -e "  ${GREEN}   Memory              : 2Gi${RESET}"
+echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
+echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
+echo -e "  ${GREEN}   Auto Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
+echo -e "  ${GREEN}   Revision Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
+echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
+echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
+echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
 echo ""
 read -r -p "$(echo -e "  ${CYAN}CHOICE [1-4]: ${RESET}")" MODE_CHOICE
 case "$MODE_CHOICE" in
-    1) CPU="4"; RAM="4Gi"; MODE="HIGH PERFORMANCE"; MIN_INSTANCES="1"; MAX_INSTANCES="4" ;;
-    2) CPU="1"; RAM="512Mi"; MODE="ESSENTIAL"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
-    3) CPU="1"; RAM="1Gi"; MODE="STANDARD"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
-    4) CPU="2"; RAM="2Gi"; MODE="BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
-    *) CPU="2"; RAM="2Gi"; MODE="BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    1) CPU="4"; RAM="4Gi"; MODE="1) 🚀 HIGH PERFORMANCE"; MIN_INSTANCES="1"; MAX_INSTANCES="4" ;;
+    2) CPU="1"; RAM="512Mi"; MODE="2) 🌱 ESSENTIAL"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    3) CPU="1"; RAM="1Gi"; MODE="3) ⚖️ STANDARD"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    4) CPU="2"; RAM="2Gi"; MODE="4) ⚡ BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    *) CPU="2"; RAM="2Gi"; MODE="4) ⚡ BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
 esac
 
 echo -e "  ${GREEN}SELECTED MODE: ${CYAN}${MODE} (${CPU} vCPU / ${RAM})${RESET}"
@@ -518,7 +569,7 @@ http {
         }
 
         location / {
-            return 302 https://wtfismyip.com/;
+            return 302 https://m.youtube.com/watch?v=dQw4w9WgXcQ;
         }
     }
 }
@@ -611,11 +662,11 @@ deploy_attempt() {
 
 echo -e "  ${CYAN}DEPLOYING SSH & VLESS SERVER HOST TO ${REGION}...${RESET}"
 if deploy_attempt "$CPU" "$RAM" "$MIN_INSTANCES" "$MAX_INSTANCES"; then
-    FINAL_CPU="$CPU"; FINAL_RAM="$RAM"; FINAL_MIN="$MIN_INSTANCES"; FINAL_MAX="$MAX_INSTANCES"
+    FINAL_CPU="$CPU"; FINAL_RAM="$RAM"; FINAL_MIN="$MIN_INSTANCES"; FINAL_MAX="$MAX_INSTANCES"; FINAL_MODE="$MODE"
 elif deploy_attempt 2 2Gi 1 2; then
-    FINAL_CPU="2"; FINAL_RAM="2Gi"; FINAL_MIN="1"; FINAL_MAX="2"
+    FINAL_CPU="2"; FINAL_RAM="2Gi"; FINAL_MIN="1"; FINAL_MAX="2"; FINAL_MODE="4) ⚡ BALANCED (FALLBACK)"
 elif deploy_attempt 1 512Mi 1 2; then
-    FINAL_CPU="1"; FINAL_RAM="512Mi"; FINAL_MIN="1"; FINAL_MAX="2"
+    FINAL_CPU="1"; FINAL_RAM="512Mi"; FINAL_MIN="1"; FINAL_MAX="2"; FINAL_MODE="2) 🌱 ESSENTIAL (FALLBACK)"
 else
     echo -e "  ${MAGENTA}ALL DEPLOY ATTEMPTS FAILED.${RESET}"
     echo -e "  ${CYAN}Check your actual quota at:${RESET}"
@@ -638,13 +689,18 @@ echo -e "  ${CYAN}VLESS CONFIG DETAILS:${RESET}"
 echo -e "  ${CYAN}UUID             : ${GREEN}cxlvin777${RESET}"
 echo -e "  ${CYAN}Path             : ${GREEN}/CxlvinVlWS${RESET}"
 echo -e "  ${MAGENTA}==================================================${NC}"
-echo -e "  ${GREEN}            BUILD USED PROFILE (${MODE})${NC}"
-echo -e "  ${MAGENTA}==================================================${NC}"
+echo -e "  ${CYAN}  ${FINAL_MODE}${RESET}"
+echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
 echo -e "  ${GREEN}   vCPU                : ${FINAL_CPU}CPU${RESET}"
 echo -e "  ${GREEN}   Memory              : ${FINAL_RAM}${RESET}"
 echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
 echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
-echo -e "  ${GREEN}   Auto Scaling        : ${FINAL_MIN} - ${FINAL_MAX}${RESET}"
+echo -e "  ${GREEN}   Auto Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : ${FINAL_MIN}${RESET}"
+echo -e "  ${GREEN}     Max Instances       : ${FINAL_MAX}${RESET}"
+echo -e "  ${GREEN}   Revision Scaling:${RESET}"
+echo -e "  ${GREEN}     Min Instances       : ${FINAL_MIN}${RESET}"
+echo -e "  ${GREEN}     Max Instances       : ${FINAL_MAX}${RESET}"
 echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
 echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
 echo -e "  ${MAGENTA}==================================================${NC}"
