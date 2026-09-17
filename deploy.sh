@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 
-# WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6
+# WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6 (ADVANCED SECURITY EDITION)
 # 
 # ==============================================================================
 BOLD='\033[1m'; RESET='\033[0m'; NC='\033[0m'
@@ -13,7 +13,7 @@ PINK='\033[38;5;201m'
 YELLOW='\033[1;33m'
 
 echo ""
-echo -e "  ${BOLD}${CYAN}WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.2${RESET}"
+echo -e "  ${BOLD}${CYAN}WELCOME TO CXLVINVlSSH-WS DEPLOYER SCRIPT v2.6${RESET}"
 echo ""
 
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null | tr -d '[:space:]')
@@ -84,61 +84,13 @@ echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}            BUILD MODE SELECTION${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${CYAN}1) 🚀 HIGH PERFORMANCE${RESET}"
-echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
-echo -e "  ${GREEN}   vCPU                : 4CPU${RESET}"
-echo -e "  ${GREEN}   Memory              : 4Gi${RESET}"
-echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
-echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
-echo -e "  ${GREEN}   Auto Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 4${RESET}"
-echo -e "  ${GREEN}   Revision Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 4${RESET}"
-echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
-echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
+echo -e "  ${GREEN}   vCPU: 4 | RAM: 4Gi | Min: 1 | Max: 4${RESET}"
 echo -e "  ${CYAN}2) 🌱 ESSENTIAL${RESET}"
-echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
-echo -e "  ${GREEN}   vCPU                : 1CPU${RESET}"
-echo -e "  ${GREEN}   Memory              : 512Mi${RESET}"
-echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
-echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
-echo -e "  ${GREEN}   Auto Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
-echo -e "  ${GREEN}   Revision Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
-echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
-echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
+echo -e "  ${GREEN}   vCPU: 1 | RAM: 512Mi | Min: 1 | Max: 2${RESET}"
 echo -e "  ${CYAN}3) ⚖️ STANDARD${RESET}"
-echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
-echo -e "  ${GREEN}   vCPU                : 1CPU${RESET}"
-echo -e "  ${GREEN}   Memory              : 1Gi${RESET}"
-echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
-echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
-echo -e "  ${GREEN}   Auto Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
-echo -e "  ${GREEN}   Revision Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
-echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
-echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
+echo -e "  ${GREEN}   vCPU: 1 | RAM: 1Gi | Min: 1 | Max: 2${RESET}"
 echo -e "  ${CYAN}4) ⚡ BALANCED${RESET}"
-echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
-echo -e "  ${GREEN}   vCPU                : 2CPU${RESET}"
-echo -e "  ${GREEN}   Memory              : 2Gi${RESET}"
-echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
-echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
-echo -e "  ${GREEN}   Auto Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
-echo -e "  ${GREEN}   Revision Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
-echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
-echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
-echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
+echo -e "  ${GREEN}   vCPU: 2 | RAM: 2Gi | Min: 1 | Max: 2${RESET}"
 echo ""
 read -r -p "$(echo -e "  ${CYAN}CHOICE [1-4]: ${RESET}")" MODE_CHOICE
 case "$MODE_CHOICE" in
@@ -197,12 +149,195 @@ cat << 'EOF' > xray_config.json
 }
 EOF
 
-# --- 3. entrypoint.sh ---
+# --- 3. Anti-DDoS Module (anti_ddos.py) ---
+cat << 'EOF' > anti_ddos.py
+import time
+import subprocess
+import collections
+import os
+import sys
+
+# Configuration Parameters
+MAX_CONN_PER_IP = 150       # Maximum concurrent sockets per remote IP
+RATE_LIMIT_WINDOW = 5       # Window in seconds
+MAX_REQ_PER_WINDOW = 200    # Threshold connections within window
+BAN_TIME = 600              # Ban duration in seconds (10 mins)
+
+banned_ips = {}
+ip_history = collections.defaultdict(list)
+
+def log(msg):
+    print(f"[Anti-DDoS] {time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}", flush=True)
+
+def apply_ip_ban(ip):
+    log(f"ALERT: Malicious traffic detected from {ip}. Applying Ban...")
+    banned_ips[ip] = time.time() + BAN_TIME
+    # Attempt iptables rule insertion (if privileged)
+    try:
+        subprocess.run(["iptables", "-A", "INPUT", "-s", ip, "-j", "DROP"], check=True, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+def unban_expired():
+    now = time.time()
+    to_remove = []
+    for ip, expire_time in banned_ips.items():
+        if now >= expire_time:
+            to_remove.append(ip)
+            try:
+                subprocess.run(["iptables", "-D", "INPUT", "-s", ip, "-j", "DROP"], check=True, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+    for ip in to_remove:
+        del banned_ips[ip]
+        log(f"UNBAN: Released IP {ip}")
+
+def inspect_connections():
+    now = time.time()
+    try:
+        # Scan socket activity via ss
+        proc = subprocess.Popen(["ss", "-ntu"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, _ = proc.communicate()
+    except Exception as e:
+        return
+
+    active_counts = collections.defaultdict(int)
+    
+    for line in stdout.splitlines():
+        if "ESTAB" not in line and "SYN-SENT" not in line:
+            continue
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+        
+        # Extract remote IP address
+        r_addr = parts[4]
+        if ":" in r_addr:
+            ip = r_addr.rsplit(":", 1)[0].replace("[", "").replace("]", "")
+            if ip in ("127.0.0.1", "::1", ""):
+                continue
+            
+            active_counts[ip] += 1
+            ip_history[ip].append(now)
+
+            # Enforce max concurrency limit
+            if active_counts[ip] > MAX_CONN_PER_IP and ip not in banned_ips:
+                log(f"EXCEEDED CONCURRENCY: {ip} with {active_counts[ip]} connections.")
+                apply_ip_ban(ip)
+
+    # Enforce burst rate limits
+    for ip, timestamps in list(ip_history.items()):
+        # Prune timestamps older than window
+        ip_history[ip] = [t for t in timestamps if now - t <= RATE_LIMIT_WINDOW]
+        if len(ip_history[ip]) > MAX_REQ_PER_WINDOW and ip not in banned_ips:
+            log(f"RATE LIMIT EXCEEDED: {ip} ({len(ip_history[ip])} reqs/{RATE_LIMIT_WINDOW}s)")
+            apply_ip_ban(ip)
+
+def main():
+    log("Engine started. Monitoring sockets...")
+    while True:
+        try:
+            unban_expired()
+            inspect_connections()
+        except Exception as e:
+            pass
+        time.sleep(2)
+
+if __name__ == "__main__":
+    main()
+EOF
+
+# --- 4. Log Cleaner Module (log_cleaner.py) ---
+cat << 'EOF' > log_cleaner.py
+import os
+import time
+import glob
+import shutil
+
+LOG_PATHS = [
+    "/var/log/nginx/*.log",
+    "/var/log/sshd.log",
+    "/var/log/syslog",
+    "/var/log/messages",
+    "/var/log/auth.log",
+    "/tmp/*.log"
+]
+
+CLEAN_INTERVAL = 120  # Runs every 2 minutes
+MAX_FILE_SIZE_MB = 10 # Truncate if exceeds 10MB
+
+def log(msg):
+    print(f"[Log-Cleaner] {time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}", flush=True)
+
+def truncate_file(filepath):
+    try:
+        with open(filepath, 'w') as f:
+            f.truncate(0)
+        log(f"Truncated oversized log: {filepath}")
+    except Exception:
+        pass
+
+def wipe_temp_cache():
+    dirs_to_purge = ["/tmp", "/var/tmp", "/var/cache/nginx"]
+    for path in dirs_to_purge:
+        if os.path.exists(path):
+            for item in os.listdir(path):
+                target = os.path.join(path, item)
+                try:
+                    if os.path.isfile(target) and not target.endswith('.py'):
+                        if time.time() - os.path.getmtime(target) > 300: # Older than 5 min
+                            os.remove(target)
+                except Exception:
+                    pass
+
+def purge_logs():
+    for pattern in LOG_PATHS:
+        for filepath in glob.glob(pattern):
+            try:
+                if os.path.isfile(filepath):
+                    size_mb = os.path.getsize(filepath) / (1024 * 1024)
+                    if size_mb > MAX_FILE_SIZE_MB:
+                        truncate_file(filepath)
+            except Exception:
+                pass
+
+def main():
+    log("Engine active. Automatic log sanitization enabled...")
+    while True:
+        try:
+            purge_logs()
+            wipe_temp_cache()
+        except Exception as e:
+            pass
+        time.sleep(CLEAN_INTERVAL)
+
+if __name__ == "__main__":
+    main()
+EOF
+
+# --- 5. entrypoint.sh ---
 cat << 'EOF' > entrypoint.sh
 #!/bin/bash
 set -e
 
-ulimit -n 65535 || true
+echo "[+] Starting initialization script..."
+
+# 1. File Descriptor Limits
+ulimit -n 65535 2>/dev/null || true
+
+# 2. Kernel & TCP Parameters Tuning
+echo "[+] Attempting Kernel & TCP Socket Tuning..."
+sysctl -w net.core.default_qdisc=fq 2>/dev/null || true
+sysctl -w net.ipv4.tcp_congestion_control=bbr 2>/dev/null || true
+
+sysctl -w net.core.rmem_max=16777216 2>/dev/null || true
+sysctl -w net.core.wmem_max=16777216 2>/dev/null || true
+sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" 2>/dev/null || true
+sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" 2>/dev/null || true
+
+sysctl -w net.ipv4.tcp_fin_timeout=15 2>/dev/null || true
+sysctl -w net.ipv4.tcp_tw_reuse=1 2>/dev/null || true
+sysctl -w net.ipv4.tcp_fastopen=3 2>/dev/null || true
 
 echo "[+] Generating SSH Host Keys..."
 ssh-keygen -A
@@ -210,6 +345,14 @@ mkdir -p /run/sshd /var/run/sshd
 
 echo "[+] Starting Custom SSH Daemon..."
 /usr/sbin/sshd
+
+echo "[+] Starting Anti-DDoS Engine..."
+python3 /usr/local/bin/anti_ddos.py &
+ANTIDDOS_PID=$!
+
+echo "[+] Starting Log Cleaner Daemon..."
+python3 /usr/local/bin/log_cleaner.py &
+CLEANER_PID=$!
 
 echo "[+] Starting Xray Core..."
 xray run -config /usr/local/etc/xray/config.json &
@@ -275,10 +418,18 @@ PYEOF
 python3 /tmp/bridge.py &
 BRIDGE_PID=$!
 
-echo "[+] Starting Watchdog..."
+echo "[+] Starting Watchdog Monitor..."
 (
   while true; do
     sleep 10
+    if ! kill -0 "$ANTIDDOS_PID" 2>/dev/null; then
+      python3 /usr/local/bin/anti_ddos.py &
+      ANTIDDOS_PID=$!
+    fi
+    if ! kill -0 "$CLEANER_PID" 2>/dev/null; then
+      python3 /usr/local/bin/log_cleaner.py &
+      CLEANER_PID=$!
+    fi
     if ! kill -0 "$UDPGW_PID" 2>/dev/null; then
       badvpn-udpgw --listen-addr 127.0.0.1:7300 --max-clients 1000 \
         --max-connections-for-client 40 --loglevel warning &
@@ -303,7 +454,7 @@ exec nginx -g "daemon off;"
 EOF
 chmod +x entrypoint.sh
 
-# --- 4. nginx.conf ---
+# --- 6. nginx.conf ---
 cat << 'EOF' > nginx.conf
 worker_processes auto;
 events {
@@ -373,19 +524,19 @@ http {
 }
 EOF
 
-# --- 5. Dockerfile ---
+# --- 7. Dockerfile ---
 cat << 'EOF' > Dockerfile
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     build-essential libssl-dev zlib1g-dev libpam0g-dev libselinux1-dev \
-    nginx python3 cmake git wget curl ca-certificates unzip \
+    nginx python3 cmake git wget curl ca-certificates unzip iproute2 iptables \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -r -s /bin/false sshd || true
 
-# Patch version.h directly and compile OpenSSH from source with the exact string intact
+# Patch version.h directly and compile OpenSSH from source with exact custom identity
 RUN wget --no-check-certificate -O /tmp/openssh.tar.gz https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz \
     && tar -xzf /tmp/openssh.tar.gz -C /tmp \
     && cd /tmp/openssh-9.8p1 \
@@ -428,10 +579,12 @@ RUN { \
 COPY banner.txt /etc/ssh/banner.txt
 RUN echo "Banner /etc/ssh/banner.txt" >> /etc/ssh/sshd_config
 
+COPY anti_ddos.py /usr/local/bin/anti_ddos.py
+COPY log_cleaner.py /usr/local/bin/log_cleaner.py
 COPY xray_config.json /usr/local/etc/xray/config.json
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/anti_ddos.py /usr/local/bin/log_cleaner.py
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
@@ -487,26 +640,19 @@ echo -e "  ${CYAN}Path             : ${GREEN}/CxlvinVlWS${RESET}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}            BUILD USED PROFILE (${MODE})${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
-echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
 echo -e "  ${GREEN}   vCPU                : ${FINAL_CPU}CPU${RESET}"
 echo -e "  ${GREEN}   Memory              : ${FINAL_RAM}${RESET}"
 echo -e "  ${GREEN}   Concurrency         : 1000${RESET}"
 echo -e "  ${GREEN}   Timeout             : 3600${RESET}"
-echo -e "  ${GREEN}   Auto Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : ${FINAL_MIN}${RESET}"
-echo -e "  ${GREEN}     Max Instances       : ${FINAL_MAX}${RESET}"
-echo -e "  ${GREEN}   Revision Scaling:${RESET}"
-echo -e "  ${GREEN}     Min Instances       : ${FINAL_MIN}${RESET}"
-echo -e "  ${GREEN}     Max Instances       : ${FINAL_MAX}${RESET}"
+echo -e "  ${GREEN}   Auto Scaling        : ${FINAL_MIN} - ${FINAL_MAX}${RESET}"
 echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
 echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
-echo -e "  ${CYAN}${RESET}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo ""
 
 cleanup() {
     echo -e "\n  ${PINK}CLEANING UP LOCAL BUILD LOGS AND GENERATED FILES...${RESET}"
-    rm -f banner.txt entrypoint.sh nginx.conf Dockerfile xray_config.json
+    rm -f banner.txt entrypoint.sh nginx.conf Dockerfile xray_config.json anti_ddos.py log_cleaner.py
     echo -e "  ${CYAN}DEPLOYER SESSION CLOSED.${RESET}\n"
 }
 
