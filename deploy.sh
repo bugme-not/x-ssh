@@ -31,7 +31,7 @@ gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}                 SERVICE NAME${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
-read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [example:cxlvin]: ${RESET}")" INPUT_NAME
+read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [example: cxlvin]: ${RESET}")" INPUT_NAME
 SERVICE_NAME=${INPUT_NAME:-cxlvin}
 echo ""
 
@@ -790,14 +790,19 @@ SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --
 CLEAN_HOST=$(echo "$SERVICE_URL" | sed 's|https://||')
 
 echo ""
-echo -e "  ${GREEN} DEPLOYED SSH & VLESS SUCCESSFULLY${RESET}"
+echo -e "  ${GREEN} [✓] SSH & VLESS WEBSOCKET DEPLOYED SUCCESSFUL${RESET}"
 echo ""
 echo -e "  ${CYAN}SERVICE NAME     : ${GREEN}${SERVICE_NAME}${RESET}"
 echo -e "  ${CYAN}RAW HOST         : ${GREEN}${CLEAN_HOST}${RESET}"
 echo -e "  ${CYAN}SERVER HOST      : ${GREEN}${SERVICE_URL}${RESET}"
-echo -e "  ${CYAN}User/Pass        : ${GREEN}cxlvin : cxlvin${RESET}"
 echo -e "  ${MAGENTA}--------------------------------------------------${NC}"
-echo -e "  ${CYAN}VLESS CONFIG DETAILS:${RESET}"
+echo -e "  ${CYAN}SSH WS DETAILS:${RESET}"
+echo -e "  ${CYAN}Username         : ${GREEN}cxlvin${RESET}"
+echo -e "  ${CYAN}Password         : ${GREEN}cxlvin${RESET}"
+echo -e "  ${CYAN}Port             : ${GREEN}443${RESET}"
+echo -e "  ${CYAN}Payload          : ${GREEN}GET /cxlvin HTTP/1.1[crlf]Host: ${CLEAN_HOST}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]${RESET}"
+echo -e "  ${MAGENTA}--------------------------------------------------${NC}"
+echo -e "  ${CYAN}VLESS WS DETAILS:${RESET}"
 echo -e "  ${CYAN}UUID             : ${GREEN}cxlvin777${RESET}"
 echo -e "  ${CYAN}Path             : ${GREEN}/CxlvinVlWS${RESET}"
 echo -e "  ${MAGENTA}==================================================${NC}"
@@ -817,6 +822,7 @@ echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
 echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo ""
+
 
 cleanup() {
     echo -e "\n  ${PINK}CLEANING UP LOCAL BUILD LOGS AND GENERATED FILES...${RESET}"
