@@ -31,13 +31,18 @@ gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}                 SERVICE NAME${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
-read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [example: cxlvin]: ${RESET}")" INPUT_NAME
-SERVICE_NAME=${INPUT_NAME:-cxlvin}
+echo -e "  ${YELLOW}Note: Use lowercase letters only. Do not use uppercase${NC}"
+echo -e "  ${YELLOW}letters or the deployment will fail (e.g., ${GREEN}cxlvin ✔️${RESET}${YELLOW}, Cxlvin ❌).${NC}"
+echo -e "  ${MAGENTA}--------------------------------------------------${NC}"
+read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [service-name]: ${RESET}")" INPUT_NAME
+SERVICE_NAME=${INPUT_NAME:sevice-name}
 echo ""
-
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}              SELECT REGION${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
+echo -e "  ${YELLOW}Note: Please select a region available in your lab.${NC}"
+echo -e "  ${YELLOW}Selecting an unavailable region will cause the build to fail.${NC}"
+echo -e "  ${MAGENTA}--------------------------------------------------${NC}"
 echo -e "  ${YELLOW}--- NORTH AMERICA ---${RESET}"
 echo -e "  ${CYAN}0. us-central1 (Iowa)${RESET}"
 echo -e "  ${CYAN}1. us-east1 (South Carolina)${RESET}"
@@ -82,11 +87,10 @@ case "$REGION_CHOICE" in
 esac
 echo -e "  ${GREEN}SELECTED REGION: ${CYAN}${REGION}${RESET}"
 echo ""
-
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}            BUILD MODE SELECTION${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
-echo -e "  ${CYAN}1) 🚀 HIGH PERFORMANCE${RESET}"
+echo -e "  ${CYAN}1) ðŸš€ HIGH PERFORMANCE${RESET}"
 echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
 echo -e "  ${GREEN}   vCPU                : 4CPU${RESET}"
 echo -e "  ${GREEN}   Memory              : 4Gi${RESET}"
@@ -100,7 +104,7 @@ echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
 echo -e "  ${GREEN}     Max Instances       : 4${RESET}"
 echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
 echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
-echo -e "  ${CYAN}2) 🌱 ESSENTIAL${RESET}"
+echo -e "  ${CYAN}2) ðŸŒ± ESSENTIAL${RESET}"
 echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
 echo -e "  ${GREEN}   vCPU                : 1CPU${RESET}"
 echo -e "  ${GREEN}   Memory              : 512Mi${RESET}"
@@ -114,7 +118,7 @@ echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
 echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
 echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
 echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
-echo -e "  ${CYAN}3) ⚖️ STANDARD${RESET}"
+echo -e "  ${CYAN}3) âš–ï¸ STANDARD${RESET}"
 echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
 echo -e "  ${GREEN}   vCPU                : 1CPU${RESET}"
 echo -e "  ${GREEN}   Memory              : 1Gi${RESET}"
@@ -128,7 +132,7 @@ echo -e "  ${GREEN}     Min Instances       : 1${RESET}"
 echo -e "  ${GREEN}     Max Instances       : 2${RESET}"
 echo -e "  ${GREEN}   Execution Env       : Gen2${RESET}"
 echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
-echo -e "  ${CYAN}4) ⚡ BALANCED${RESET}"
+echo -e "  ${CYAN}4) âš¡ BALANCED${RESET}"
 echo -e "  ${GREEN}   Billing Type        : Instance-Based${RESET}"
 echo -e "  ${GREEN}   vCPU                : 2CPU${RESET}"
 echo -e "  ${GREEN}   Memory              : 2Gi${RESET}"
@@ -145,11 +149,11 @@ echo -e "  ${GREEN}   CPU Boost           : Enabled${RESET}"
 echo ""
 read -r -p "$(echo -e "  ${CYAN}CHOICE [1-4]: ${RESET}")" MODE_CHOICE
 case "$MODE_CHOICE" in
-    1) CPU="4"; RAM="4Gi"; MODE="1) 🚀 HIGH PERFORMANCE"; MIN_INSTANCES="1"; MAX_INSTANCES="4" ;;
-    2) CPU="1"; RAM="512Mi"; MODE="2) 🌱 ESSENTIAL"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
-    3) CPU="1"; RAM="1Gi"; MODE="3) ⚖️ STANDARD"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
-    4) CPU="2"; RAM="2Gi"; MODE="4) ⚡ BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
-    *) CPU="2"; RAM="2Gi"; MODE="4) ⚡ BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    1) CPU="4"; RAM="4Gi"; MODE="1) ðŸš€ HIGH PERFORMANCE"; MIN_INSTANCES="1"; MAX_INSTANCES="4" ;;
+    2) CPU="1"; RAM="512Mi"; MODE="2) ðŸŒ± ESSENTIAL"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    3) CPU="1"; RAM="1Gi"; MODE="3) âš–ï¸ STANDARD"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    4) CPU="2"; RAM="2Gi"; MODE="4) âš¡ BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
+    *) CPU="2"; RAM="2Gi"; MODE="4) âš¡ BALANCED"; MIN_INSTANCES="1"; MAX_INSTANCES="2" ;;
 esac
 
 echo -e "  ${GREEN}SELECTED MODE: ${CYAN}${MODE} (${CPU} vCPU / ${RAM})${RESET}"
@@ -160,7 +164,7 @@ echo -e "  ${PINK}[+] GENERATING DEPLOYMENT FILES...${RESET}"
 # --- 1. banner.txt ---
 cat << 'EOF' > banner.txt
 <font color="#00ffff">======================================</font>
-<font color="#ff0000">Cxlvin</font><font color="#ffcaa1">Vl</font><font color="#ffff00">SSH</font><font color="#ffffff">: </font><font color="#00ff00">BUILT_WITH_INTENT </font>🫪🖕🏻
+<font color="#ff0000">Cxlvin</font><font color="#ffcaa1">Vl</font><font color="#ffff00">SSH</font><font color="#ffffff">: </font><font color="#00ff00">BUILT_WITH_INTENT </font>ðŸ«ªðŸ–•ðŸ»
 <font color="#00ffff">======================================</font>
 EOF
 
@@ -605,104 +609,6 @@ def handle(client):
         client.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
         ssh = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tune_socket(ssh)
-cat << 'EOF' > entrypoint.sh
-#!/bin/bash
-set -e
-
-echo "[+] Starting initialization script..."
-
-# 1. File Descriptor Limits
-ulimit -n 65535 2>/dev/null || true
-
-# 2. Kernel & TCP Parameters Tuning
-echo "[+] Attempting Kernel & TCP Socket Tuning..."
-sysctl -w net.core.default_qdisc=fq 2>/dev/null || true
-sysctl -w net.ipv4.tcp_congestion_control=bbr 2>/dev/null || true
-
-sysctl -w net.core.rmem_max=16777216 2>/dev/null || true
-sysctl -w net.core.wmem_max=16777216 2>/dev/null || true
-sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" 2>/dev/null || true
-sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" 2>/dev/null || true
-
-sysctl -w net.ipv4.tcp_fin_timeout=15 2>/dev/null || true
-sysctl -w net.ipv4.tcp_tw_reuse=1 2>/dev/null || true
-sysctl -w net.ipv4.tcp_fastopen=3 2>/dev/null || true
-
-echo "[+] Generating SSH Host Keys..."
-ssh-keygen -A
-mkdir -p /run/sshd /var/run/sshd
-
-echo "[+] Starting Custom SSH Daemon..."
-/usr/sbin/sshd
-
-echo "[+] Starting Anti-DDoS Engine..."
-python3 /usr/local/bin/anti_ddos.py &
-ANTIDDOS_PID=$!
-
-echo "[+] Starting Log Cleaner Daemon..."
-python3 /usr/local/bin/log_cleaner.py &
-CLEANER_PID=$!
-
-# Dynamic Environment Variable Injection
-echo "[+] Injecting custom CXLVIN settings into configs..."
-: "${CXLVIN_XPATH:=/CxlvinVlWS}"
-: "${CXLVIN_PASS:=cxlvin777}"
-
-if [ -f /usr/local/etc/xray/config.json ]; then
-    sed -i "s|\"path\": \".*\"|\"path\": \"${CXLVIN_XPATH}\"|g" /usr/local/etc/xray/config.json
-    sed -i "s|\"id\": \".*\"|\"id\": \"${CXLVIN_PASS}\"|g" /usr/local/etc/xray/config.json
-fi
-
-if [ -f /etc/nginx/nginx.conf ]; then
-    sed -i "s|location /.* {|location ${CXLVIN_XPATH} {|g" /etc/nginx/nginx.conf
-fi
-
-echo "[+] Starting Xray Core..."
-xray run -config /usr/local/etc/xray/config.json &
-XRAY_PID=$!
-
-echo "[+] Starting BadVPN UDPGW..."
-badvpn-udpgw \
-  --listen-addr 127.0.0.1:7300 \
-  --max-clients 1000 \
-  --max-connections-for-client 40 \
-  --loglevel warning &
-UDPGW_PID=$!
-
-echo "[+] Creating Optimized WS-to-TCP Bridge..."
-cat << 'PYEOF' > /tmp/bridge.py
-import socket, threading
-
-BUF_SIZE = 65536
-
-def tune_socket(sock):
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    try:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1 << 20)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1 << 20)
-    except OSError:
-        pass
-
-def bridge(src, dst):
-    try:
-        while True:
-            data = src.recv(BUF_SIZE)
-            if not data:
-                break
-            dst.sendall(data)
-    except Exception:
-        pass
-    finally:
-        src.close()
-        dst.close()
-
-def handle(client):
-    try:
-        tune_socket(client)
-        client.recv(4096)
-        client.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
-        ssh = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tune_socket(ssh)
         ssh.connect(('127.0.0.1', 22))
         threading.Thread(target=bridge, args=(client, ssh), daemon=True).start()
         threading.Thread(target=bridge, args=(ssh, client), daemon=True).start()
@@ -832,12 +738,6 @@ cat << 'EOF' > Dockerfile
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Custom Environment Variables
-ENV CXLVIN_IP="x.xkyun.xyz"
-ENV CXLVIN_XPATH="/CxlvinVlWS"
-ENV CXLVIN_PROTO="vless"
-ENV CXLVIN_PASS="cxlvin777"
-
 RUN apt-get update && apt-get install -y \
     build-essential libssl-dev zlib1g-dev libpam0g-dev libselinux1-dev \
     nginx python3 cmake git wget curl ca-certificates unzip iproute2 iptables \
@@ -922,9 +822,9 @@ echo -e "  ${CYAN}DEPLOYING SSH & VLESS SERVER HOST TO ${REGION}...${RESET}"
 if deploy_attempt "$CPU" "$RAM" "$MIN_INSTANCES" "$MAX_INSTANCES"; then
     FINAL_CPU="$CPU"; FINAL_RAM="$RAM"; FINAL_MIN="$MIN_INSTANCES"; FINAL_MAX="$MAX_INSTANCES"; FINAL_MODE="$MODE"
 elif deploy_attempt 2 2Gi 1 2; then
-    FINAL_CPU="2"; FINAL_RAM="2Gi"; FINAL_MIN="1"; FINAL_MAX="2"; FINAL_MODE="4) ⚡ BALANCED (FALLBACK)"
+    FINAL_CPU="2"; FINAL_RAM="2Gi"; FINAL_MIN="1"; FINAL_MAX="2"; FINAL_MODE="4) âš¡ BALANCED (FALLBACK)"
 elif deploy_attempt 1 512Mi 1 2; then
-    FINAL_CPU="1"; FINAL_RAM="512Mi"; FINAL_MIN="1"; FINAL_MAX="2"; FINAL_MODE="2) 🌱 ESSENTIAL (FALLBACK)"
+    FINAL_CPU="1"; FINAL_RAM="512Mi"; FINAL_MIN="1"; FINAL_MAX="2"; FINAL_MODE="2) ðŸŒ± ESSENTIAL (FALLBACK)"
 else
     echo -e "  ${MAGENTA}ALL DEPLOY ATTEMPTS FAILED.${RESET}"
     echo -e "  ${CYAN}Check your actual quota at:${RESET}"
@@ -936,7 +836,7 @@ SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --
 CLEAN_HOST=$(echo "$SERVICE_URL" | sed 's|https://||')
 
 echo ""
-echo -e "  ${GREEN} [✓] SSH & VLESS WEBSOCKET DEPLOYED SUCCESSFUL${RESET}"
+echo -e "  ${GREEN} [âœ“] SSH & VLESS WEBSOCKET DEPLOYED SUCCESSFUL${RESET}"
 echo ""
 echo -e "  ${CYAN}SERVICE NAME     : ${GREEN}${SERVICE_NAME}${RESET}"
 echo -e "  ${CYAN}RAW HOST         : ${GREEN}${CLEAN_HOST}${RESET}"
