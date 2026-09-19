@@ -165,7 +165,7 @@ echo -e "  ${PINK}[+] GENERATING DEPLOYMENT FILES...${RESET}"
 # --- 1. banner.txt ---
 cat << 'EOF' > banner.txt
 <font color="#00ffff">======================================</font>
-<font color="#ff0000">Cxlvin</font><font color="#ffcaa1">Vl</font><font color="#ffff00">SSH</font><font color="#ffffff">: </font><font color="#00ff00">BUILT_WITH_INTENT </font>ðŸ«ªðŸ–•ðŸ»
+<font color="#ff0000">Cxlvin</font><font color="#ffcaa1">Vl</font><font color="#ffff00">SSH</font><font color="#ffffff">: </font><font color="#00ff00">BUILT_WITH_INTENT </font>🫪🖕🏻
 <font color="#00ffff">======================================</font>
 EOF
 
@@ -837,7 +837,7 @@ SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --
 CLEAN_HOST=$(echo "$SERVICE_URL" | sed 's|https://||')
 
 echo ""
-echo -e "  ${GREEN} [âœ“] SSH & VLESS WEBSOCKET DEPLOYED SUCCESSFUL${RESET}"
+echo -e "  ${GREEN} [✔] SSH & VLESS WEBSOCKET DEPLOYED SUCCESSFUL${RESET}"
 echo ""
 echo -e "  ${CYAN}SERVICE NAME     : ${GREEN}${SERVICE_NAME}${RESET}"
 echo -e "  ${CYAN}RAW HOST         : ${GREEN}${CLEAN_HOST}${RESET}"
