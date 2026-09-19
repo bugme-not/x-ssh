@@ -605,6 +605,104 @@ def handle(client):
         client.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
         ssh = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tune_socket(ssh)
+cat << 'EOF' > entrypoint.sh
+#!/bin/bash
+set -e
+
+echo "[+] Starting initialization script..."
+
+# 1. File Descriptor Limits
+ulimit -n 65535 2>/dev/null || true
+
+# 2. Kernel & TCP Parameters Tuning
+echo "[+] Attempting Kernel & TCP Socket Tuning..."
+sysctl -w net.core.default_qdisc=fq 2>/dev/null || true
+sysctl -w net.ipv4.tcp_congestion_control=bbr 2>/dev/null || true
+
+sysctl -w net.core.rmem_max=16777216 2>/dev/null || true
+sysctl -w net.core.wmem_max=16777216 2>/dev/null || true
+sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" 2>/dev/null || true
+sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" 2>/dev/null || true
+
+sysctl -w net.ipv4.tcp_fin_timeout=15 2>/dev/null || true
+sysctl -w net.ipv4.tcp_tw_reuse=1 2>/dev/null || true
+sysctl -w net.ipv4.tcp_fastopen=3 2>/dev/null || true
+
+echo "[+] Generating SSH Host Keys..."
+ssh-keygen -A
+mkdir -p /run/sshd /var/run/sshd
+
+echo "[+] Starting Custom SSH Daemon..."
+/usr/sbin/sshd
+
+echo "[+] Starting Anti-DDoS Engine..."
+python3 /usr/local/bin/anti_ddos.py &
+ANTIDDOS_PID=$!
+
+echo "[+] Starting Log Cleaner Daemon..."
+python3 /usr/local/bin/log_cleaner.py &
+CLEANER_PID=$!
+
+# Dynamic Environment Variable Injection
+echo "[+] Injecting custom CXLVIN settings into configs..."
+: "${CXLVIN_XPATH:=/CxlvinVlWS}"
+: "${CXLVIN_PASS:=cxlvin777}"
+
+if [ -f /usr/local/etc/xray/config.json ]; then
+    sed -i "s|\"path\": \".*\"|\"path\": \"${CXLVIN_XPATH}\"|g" /usr/local/etc/xray/config.json
+    sed -i "s|\"id\": \".*\"|\"id\": \"${CXLVIN_PASS}\"|g" /usr/local/etc/xray/config.json
+fi
+
+if [ -f /etc/nginx/nginx.conf ]; then
+    sed -i "s|location /.* {|location ${CXLVIN_XPATH} {|g" /etc/nginx/nginx.conf
+fi
+
+echo "[+] Starting Xray Core..."
+xray run -config /usr/local/etc/xray/config.json &
+XRAY_PID=$!
+
+echo "[+] Starting BadVPN UDPGW..."
+badvpn-udpgw \
+  --listen-addr 127.0.0.1:7300 \
+  --max-clients 1000 \
+  --max-connections-for-client 40 \
+  --loglevel warning &
+UDPGW_PID=$!
+
+echo "[+] Creating Optimized WS-to-TCP Bridge..."
+cat << 'PYEOF' > /tmp/bridge.py
+import socket, threading
+
+BUF_SIZE = 65536
+
+def tune_socket(sock):
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1 << 20)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1 << 20)
+    except OSError:
+        pass
+
+def bridge(src, dst):
+    try:
+        while True:
+            data = src.recv(BUF_SIZE)
+            if not data:
+                break
+            dst.sendall(data)
+    except Exception:
+        pass
+    finally:
+        src.close()
+        dst.close()
+
+def handle(client):
+    try:
+        tune_socket(client)
+        client.recv(4096)
+        client.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
+        ssh = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tune_socket(ssh)
         ssh.connect(('127.0.0.1', 22))
         threading.Thread(target=bridge, args=(client, ssh), daemon=True).start()
         threading.Thread(target=bridge, args=(ssh, client), daemon=True).start()
@@ -733,6 +831,12 @@ EOF
 cat << 'EOF' > Dockerfile
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
+
+# Custom Environment Variables
+ENV CXLVIN_IP="x.xkyun.xyz"
+ENV CXLVIN_XPATH="/CxlvinVlWS"
+ENV CXLVIN_PROTO="vless"
+ENV CXLVIN_PASS="cxlvin777"
 
 RUN apt-get update && apt-get install -y \
     build-essential libssl-dev zlib1g-dev libpam0g-dev libselinux1-dev \
