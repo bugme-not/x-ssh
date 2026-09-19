@@ -32,10 +32,10 @@ echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}                 SERVICE NAME${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${YELLOW}Note: Use lowercase letters only. Do not use uppercase${NC}"
-echo -e "  ${YELLOW}letters or the deployment will fail (e.g., ${GREEN}cxlvin ✔️${RESET}${YELLOW}, Cxlvin ❌).${NC}"
+echo -e "  ${YELLOW}letters or the deployment will fail (e.g., ${GREEN}cxlvin ✔${RESET}${YELLOW}, ${RED}Cxlvin ✘${RESET}${YELLOW}).${NC}"
 echo -e "  ${MAGENTA}--------------------------------------------------${NC}"
-read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [service-name]: ${RESET}")" INPUT_NAME
-SERVICE_NAME=${INPUT_NAME:sevice-name}
+read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [example: cxlvin]: ${RESET}")" INPUT_NAME
+SERVICE_NAME=${INPUT_NAME:-cxlvin}
 echo ""
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}              SELECT REGION${NC}"
