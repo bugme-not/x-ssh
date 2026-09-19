@@ -6,6 +6,7 @@ GREEN='\033[1;32m'
 MAGENTA='\033[1;35m'
 PINK='\033[38;5;201m'
 YELLOW='\033[1;33m'
+RED='\033[1;31m'
 
 
 BORDER_COLOR='[1;35m'
@@ -32,7 +33,7 @@ echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${GREEN}                 SERVICE NAME${NC}"
 echo -e "  ${MAGENTA}==================================================${NC}"
 echo -e "  ${YELLOW}Note: Use lowercase letters only. Do not use uppercase${NC}"
-echo -e "  ${YELLOW}letters or the deployment will fail (e.g., ${GREEN}cxlvin ✔${YELLOW}, ${RED}Cxlvin ✘${YELLOW}).${NC}"
+echo -e "  ${YELLOW}letters or the deployment will fail (e.g., ${GREEN}cxlvin ✔${NC}${YELLOW}, ${NC}${RED}Cxlvin ✘${NC}${YELLOW}).${NC}"
 echo -e "  ${MAGENTA}--------------------------------------------------${NC}"
 read -r -p "$(echo -e "  ${CYAN}SERVICE NAME [example: cxlvin]: ${RESET}")" INPUT_NAME
 SERVICE_NAME=${INPUT_NAME:-cxlvin}
