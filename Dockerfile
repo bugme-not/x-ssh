@@ -1,10 +1,25 @@
-FROM ubuntu:22.04
+FROM alpine:3.20 AS xray-bin
 
-ENV DEBIAN_FRONTEND=noninteractive
+RUN apk add --no-cache \
+    curl \
+    unzip \
+    ca-certificates \
+    bash
+
+WORKDIR /app
+
+RUN curl -L --retry 3 "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip" -o xray.zip \
+    || curl -L --retry 3 "https://ghproxy.com/https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip" -o xray.zip \
+    && unzip xray.zip \
+    && chmod +x xray \
+    && mv xray /usr/local/bin/xray \
+    && rm -f xray.zip
+
+FROM openresty/openresty:alpine-fat
+
 ENV TZ=Asia/Shanghai
 
-# Install dependencies, build tools, OpenSSH, and configure OpenResty APT repo
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apk add --no-cache \
     ca-certificates \
     bash \
     curl \
@@ -12,40 +27,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     supervisor \
     python3 \
-    python3-pip \
+    py3-pip \
     iptables \
-    iproute2 \
-    unzip \
-    git \
-    cmake \
-    build-essential \
-    gnupg \
-    lsb-release \
     openssh-server \
-    && wget -qO - https://openresty.org/package/pubkey.gpg | apt-key add - \
-    && echo "deb http://openresty.org/package/ubuntu $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/openresty.list \
-    && apt-get update && apt-get install -y openresty \
-    && rm -rf /var/lib/apt/lists/*
+    openssh-sftp-server
 
 WORKDIR /app
 
-# Install Xray Core
-RUN XRAY_VER=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') \
-    && wget -O /tmp/xray.zip "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VER}/Xray-linux-64.zip" \
-    && unzip /tmp/xray.zip -d /usr/local/bin/ \
-    && chmod +x /usr/local/bin/xray \
-    && mkdir -p /usr/local/etc/xray \
-    && rm -f /tmp/xray.zip
-
-# Build BadVPN UDPGW
-RUN git clone https://github.com/ambrop72/badvpn.git /tmp/badvpn \
-    && cd /tmp/badvpn && mkdir build && cd build \
-    && cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 \
-    && make install \
-    && rm -rf /tmp/badvpn
-
-# Configure SSH User and Service Directories
-RUN mkdir -p /var/run/sshd /run/sshd \
+# Configure SSH
+RUN mkdir -p /var/run/sshd \
+    && ssh-keygen -A \
     && useradd -m -s /bin/bash cxlvin \
     && echo 'cxlvin:cxlvin' | chpasswd
 
@@ -61,9 +52,14 @@ RUN { \
     echo "Compression no"; \
     } >> /etc/ssh/sshd_config
 
-# Copy Python scripts, entrypoint, and configurations
+# Copy Xray binary
+COPY --from=xray-bin /usr/local/bin/xray /usr/local/bin/xray
+RUN chmod +x /usr/local/bin/xray
+
+# Copy Python scripts & configs
 COPY sub_server.py /app/sub_server.py
 COPY anti_ddos.py /app/anti_ddos.py
+COPY log_cleaner.py /app/log_cleaner.py
 COPY entrypoint.sh /app/entrypoint.sh
 
 COPY config.json /etc/xray.json
@@ -73,6 +69,9 @@ COPY supervisord.conf /etc/supervisord.conf
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
+CMD wget -qO- http://[::1]:8080/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
