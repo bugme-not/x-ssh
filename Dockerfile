@@ -19,6 +19,7 @@ FROM openresty/openresty:alpine-fat
 
 ENV TZ=Asia/Shanghai
 
+# Installed packages without 'badvpn'
 RUN apk add --no-cache \
     ca-certificates \
     bash \
@@ -31,6 +32,11 @@ RUN apk add --no-cache \
     iptables \
     openssh-server \
     openssh-sftp-server
+
+# Download static badvpn-udpgw binary directly into /usr/local/bin
+RUN curl -L -o /usr/local/bin/badvpn-udpgw https://raw.githubusercontent.com/daybreaker/badvpn-udpgw-binaries/master/badvpn-udpgw-x86_64 \
+    || wget -O /usr/local/bin/badvpn-udpgw https://github.com/ambrop72/badvpn/releases/download/1.999.130/badvpn-1.999.130.tar.bz2 \
+    && chmod +x /usr/local/bin/badvpn-udpgw
 
 WORKDIR /app
 
@@ -46,6 +52,10 @@ RUN mkdir -p /var/run/sshd \
 RUN { \
     echo "PermitRootLogin yes"; \
     echo "PasswordAuthentication yes"; \
+    echo "AllowTcpForwarding yes"; \
+    echo "AllowAgentForwarding yes"; \
+    echo "GatewayPorts yes"; \
+    echo "PermitTunnel yes"; \
     echo "UseDNS no"; \
     echo "TCPKeepAlive yes"; \
     echo "ClientAliveInterval 15"; \
@@ -64,6 +74,7 @@ RUN chmod +x /usr/local/bin/xray
 COPY sub_server.py /app/sub_server.py
 COPY anti_ddos.py /app/anti_ddos.py
 COPY log_cleaner.py /app/log_cleaner.py
+COPY wsproxy.py /app/wsproxy.py
 COPY entrypoint.sh /app/entrypoint.sh
 
 COPY config.json /etc/xray.json
